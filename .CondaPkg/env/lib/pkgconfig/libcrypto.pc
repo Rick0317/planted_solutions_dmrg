@@ -1,0 +1,11 @@
+libdir=/Users/rick/original_planted_solutions/planted_solutions/.CondaPkg/env/lib
+includedir=/Users/rick/original_planted_solutions/planted_solutions/.CondaPkg/env/include
+enginesdir=/Users/rick/original_planted_solutions/planted_solutions/.CondaPkg/env/lib/engines-3
+modulesdir=/Users/rick/original_planted_solutions/planted_solutions/.CondaPkg/env/lib/ossl-modules
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 3.3.0
+Libs: -L${libdir} -lcrypto
+Libs.private: 
+Cflags: -I${includedir}
