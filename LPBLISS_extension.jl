@@ -61,6 +61,24 @@ H_orig = QuantumMAMBO.eri_to_F_OP(one_body_tensor, two_body_tensor, core_energy,
 # The tensors inside H_orig assume the Hamiltonian is in the form:
 # H = E_0 + \sum_{ij} h_{ij} a_i^† a_j + \sum_{ijkl} g_ijkl a_i^† a_j a_k^† a_l
 println("Fermionic operator generated.")
+# Create a 6-dimensional array of Float64
+dims = (num_orbitals, num_orbitals, num_orbitals, num_orbitals, num_orbitals, num_orbitals) # Example dimensions
+A = rand(Float64, dims...)  # Random values as an example
+
+# Define a Hermitian-like property: A[i, j, k, l, m, n] = conj(A[j, i, l, k, n, m])
+function make_hermitian(A)
+  dims = size(A)
+  for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3], l in 1:dims[4], m in 1:dims[5], n in 1:dims[6]
+    A[i, j, k, l, m, n] = conj(A[j, i, l, k, n, m])
+  end
+  return A
+end
+
+three_body_tensor = make_hermitian(A)
+N = size(one_body_tensor)[1]
+
+H_orig = QuantumMAMBO.eri_to_F_OP(one_body_tensor, two_body_tensor, core_energy, spin_orb=false)
+H_orig = H_orig + QuantumMAMBO.F_OP(three_body_tensor, false)
 
 # Run LPBLISS
 ######

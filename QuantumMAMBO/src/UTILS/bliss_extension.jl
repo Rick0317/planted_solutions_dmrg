@@ -34,7 +34,8 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
         ovec = read(BLISS_group, "ovec")
         t1 = read(BLISS_group, "t1")
         t2 = read(BLISS_group, "t2")
-        t_opt = [t1, t2]
+        t3 = read(BLISS_group, "t3")
+        t_opt = [t1, t2, t3]
         O = zeros(F.N, F.N)
         idx = 1
         for i = 1:F.N
@@ -46,7 +47,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
         @show t_opt
         @show O
         ham = fid["BLISS_HAM"]
-        F_new = F_OP((read(ham, "h_const"), read(ham, "obt"), read(ham, "tbt")))
+        F_new = F_OP((read(ham, "h_const"), read(ham, "obt"), read(ham, "tbt"), read(ham, "threebt")))
         # println("The L1 cost of symmetry treated fermionic operator is: ", PAULI_L1(F_new))
         close(fid)
         return F_new, F - F_new
@@ -68,7 +69,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
   v6_len = (F.N * (F.N - 1) * (F.N - 2))^2
 
   @variables(L1_OPT, begin
-    t[1:2]
+    t[1:3]
     obt[1:ν1_len]
     tbt1[1:ν2_len]
     tbt2[1:ν3_len]
@@ -82,14 +83,13 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
 
   ### Constraint ###
   obt_corr = ob_correction(F)
-  obt_three_corr = ob_correction_3bd(F)
   # h_ij + 2\sum_k g_ijkk 
   λ1 = zeros(ν1_len)
   idx = 0
   for i in 1:F.N
     for j in 1:F.N
       idx += 1
-      λ1[idx] = F.mbts[2][i, j] + obt_corr[i, j] + obt_three_corr[i, j]
+      λ1[idx] = F.mbts[2][i, j] + obt_corr[i, j] + ob_correction_3bd_1(F, i, j) + ob_correction_3bd_2(F, i, j) + ob_correction_3bd_3(F, i, j) + ob_correction_3bd_4(F, i, j)
     end
   end
 
@@ -322,7 +322,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
   @constraint(L1_OPT, low_3, λ3 - τ_31 * t[2] - τ_32 * t[3] - T3 * omat - tbt2 .<= 0)
   @constraint(L1_OPT, high_3, λ3 - τ_31 * t[2] - τ_32 * t[3] - T3 * omat + tbt2 .>= 0)
 
-  λ4 = zeros(ν4_len)
+  λ4 = zeros(v4_len)
   idx = 0
   for i in 1:F.N
     for k in 1:F.N
@@ -338,7 +338,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     end
   end
 
-  τ_41 = zeros(ν4_len)
+  τ_41 = zeros(v4_len)
   idx = 0
   for i in 1:F.N
     for k in 1:F.N
@@ -369,7 +369,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
   @constraint(L1_OPT, low_4, λ4 - 1 / 8 * τ_41 * t[3] - tbt3 .<= 0)
   @constraint(L1_OPT, high_4, λ4 - 1 / 8 * τ_41 * t[3] + tbt3 .>= 0)
 
-  λ5 = zeros(ν4_len)
+  λ5 = zeros(v4_len)
   idx = 0
   for j in 1:F.N
     for l in 1:F.N
@@ -385,7 +385,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     end
   end
 
-  τ_51 = zeros(ν4_len)
+  τ_51 = zeros(v4_len)
   idx = 0
   for j in 1:F.N
     for l in 1:F.N
@@ -419,7 +419,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
 
 
 
-  λ6 = zeros(ν6_len)
+  λ6 = zeros(v6_len)
   idx = 0
   for i in 1:F.N
     for j in 1:F.N
@@ -438,7 +438,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     end
   end
 
-  τ_61 = zeros(ν6_len)
+  τ_61 = zeros(v6_len)
   idx = 0
   for i in 1:F.N
     for j in 1:F.N
@@ -480,10 +480,10 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
   O = (O + O') / 2
 
 
-  Ne, Ne2 = symmetry_builder(F)
+  Ne, Ne2, Ne3 = symmetry_builder_extension(F)
 
 
-
+  s_threebt = t_opt[3] * Ne3.mbts[4]
   s2_tbt = t_opt[2] * Ne2.mbts[3]
   for i in 1:F.N
     for j in 1:F.N
@@ -493,12 +493,13 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
       end
     end
   end
+  s3 = F_OP(([0], [0], [0], s_threebt))
   s2 = F_OP(([0], [0], s2_tbt))
 
   s1_obt = t_opt[1] * Ne.mbts[2] - 2η * O
   s1 = F_OP(([-t_opt[1] * η - t_opt[2] * η^2 - t_opt[3] * η^3], s1_obt))
 
-  F_new = F - s1 - s2
+  F_new = F - s1 - s2 - s3
   if SAVELOAD
     fid = h5open(SAVENAME, "cw")
     create_group(fid, "BLISS")
@@ -507,15 +508,19 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     BLISS_group["ovec"] = o_opt
     BLISS_group["t1"] = t_opt[1]
     BLISS_group["t2"] = t_opt[2]
+    BLISS_group["t3"] = t_opt[3]
     create_group(fid, "BLISS_HAM")
     MOL_DATA = fid["BLISS_HAM"]
     MOL_DATA["h_const"] = F_new.mbts[1]
     MOL_DATA["obt"] = F_new.mbts[2]
     MOL_DATA["tbt"] = F_new.mbts[3]
+    MOL_DATA["threebt"] = F_new.mbts[4]
     MOL_DATA["eta"] = η
     close(fid)
   end
 
+  println("")
+
   #println("The L1 cost of symmetry treated fermionic operator is: ", PAULI_L1(F_new))
-  return F_new, s1 + s2
+  return F_new, s1 + s2 + s3
 end
