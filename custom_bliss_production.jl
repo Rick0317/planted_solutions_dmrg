@@ -78,7 +78,7 @@ for file in files
     H_orig = QM.eri_to_F_OP(one_body_tensor, two_body_tensor, core_energy, spin_orb=false)
 
     @time begin
-      H_bliss, K_operator = QM.bliss_linprog(H_orig,
+      H_bliss, K_operator = QM.bliss_linprog_extension(H_orig,
         num_electrons,
         model="highs", # LP solver used by Optim; "highs" or "ipopt". Both give the same answer, while "highs" is faster.
         verbose=true,

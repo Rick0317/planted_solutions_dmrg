@@ -65,7 +65,7 @@ println("Fermionic operator generated.")
 # Run LPBLISS
 ######
 @time begin
-  H_bliss, K_operator = QuantumMAMBO.bliss_linprog(H_orig,
+  H_bliss, K_operator = QuantumMAMBO.bliss_linprog_extension(H_orig,
     num_electrons,
     model="highs", # LP solver used by Optim; "highs" or "ipopt". Both give the same answer, while "highs" is faster.
     verbose=true,

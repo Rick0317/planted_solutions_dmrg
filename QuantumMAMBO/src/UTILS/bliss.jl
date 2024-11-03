@@ -989,36 +989,46 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     ovec_len = Int(F.N * (F.N + 1) / 2)
 
 
-
+    # The dimension for each vector that we are optimizing
     v1_len = 2 * F.N^2
     ν2_len = 2 * F.N^4
     ν3_len = Int(2 * (F.N * (F.N - 1) / 2)^2)
+    v4_len = 2 * (F.N^2 * (F.N - 1) * (F.N - 2))
+    v5_len = 2 * (F.N * (F.N - 1) * (F.N - 2))^2
 
+    # Initializing the variables to be optimized
     @variables(L1_OPT, begin
-      t[1:2]
+      t[1:3]
 
       obt[1:v1_len]
       tbt1[1:ν2_len]
       tbt2[1:ν3_len]
+      tbt3[1:v4_len]
+      tbt4[1:v4_len]
+      threebt[1:v5_len]
       omat[1:2*F.N^2]
     end)
 
     @objective(L1_OPT, Min, 0.5 * (sum(obt) + sum(tbt1) + sum(tbt2)))
 
-
+    # One-body correction from the two-body term g
     obt_corr = ob_correction(F)
-    #1-body 1-norm
+    # One-body correction from the three-body term t
+    obt_three_corr = ob_correction_3bd(F)
+
+    # Original one-body tensors without tilde
     λ1 = zeros(2 * F.N^2)
     idx = 0
     for s in 1:2
       for i in 1:F.N
         for j in 1:F.N
           idx += 1
-          λ1[idx] = F.mbts[2][s, i, j] + obt_corr[s, i, j]
+          λ1[idx] = F.mbts[2][s, i, j] + obt_corr[s, i, j] + obt_three_corr[s, i, j]
         end
       end
     end
 
+    # Shift due to (Ne - ne) term
     τ_11 = zeros(v1_len)
     idx = 0
     for s in 1:2
@@ -1026,11 +1036,13 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
         for j in 1:F.N
           idx += 1
           if i == j
-            τ_11[idx] = 2 * F.N
+            τ_11[idx] = 1
           end
         end
       end
     end
+
+    # Shift due to (Ne^2 - ne^2) term
     τ_12 = zeros(2 * F.N^2)
     idx = 0
     for s in 1:2
@@ -1038,7 +1050,22 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
         for j in 1:F.N
           idx += 1
           if i == j
-            τ_12[idx] = 1
+            τ_12[idx] = 2 * F.N
+          end
+        end
+      end
+    end
+
+    # Shift due to (Ne^3 - ne^3) term
+
+    τ_13 = zeros(2 * F.N^2)
+    idx = 0
+    for s in 1:2
+      for i in 1:F.N
+        for j in 1:F.N
+          idx += 1
+          if i == j
+            τ_13[idx] = 1
           end
         end
       end
@@ -1066,8 +1093,10 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     end
 
 
-    @constraint(L1_OPT, low_1, λ1 - τ_11 * t[1] - τ_12 * t[2] + (2η - 4 * F.N) * omat - obt .<= 0)
-    @constraint(L1_OPT, high_1, λ1 - τ_11 * t[1] - τ_12 * t[2] + (2η - 4 * F.N) * omat + obt .>= 0)
+    @constraint(L1_OPT, low_1, λ1 - τ_11 * t[1] - τ_12 * t[2] - t_13 * t[3] + (2η - 4 * F.N) * omat - obt .<= 0)
+    @constraint(L1_OPT, high_1, λ1 - τ_11 * t[1] - τ_12 * t[2] - t_13 * t[3] + (2η - 4 * F.N) * omat + obt .>= 0)
+
+    tbt_corr_1 = tb_correction_1(F)
 
     λ2 = zeros(ν2_len)
     idx = 0
@@ -1077,7 +1106,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
           for k in 1:F.N
             for l in 1:F.N
               idx += 1
-              λ2[idx] = 0.5 * F.mbts[3][s, i, j, k, l]
+              λ2[idx] = 0.5 * F.mbts[3][s, i, j, k, l] + 0.5 * tbt_corr_1[s, i, j, k, l]
             end
           end
         end
@@ -1127,6 +1156,8 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     @constraint(L1_OPT, low_2, λ2 - τ_21 * t[1] - vcat(T2 * omat[1:F.N^2], T2 * omat[F.N^2+1:end]) - tbt1 .<= 0)
     @constraint(L1_OPT, high_2, λ2 - τ_21 * t[1] - vcat(T2 * omat[1:F.N^2], T2 * omat[F.N^2+1:end]) + tbt1 .>= 0)
 
+    tbt_corr_2 = tb_correction_2(F)
+
     T_dict = zeros(Int64, F.N, F.N)
     idx = 0
     for i in 1:F.N
@@ -1146,7 +1177,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
           for k in 1:i-1
             for l in j+1:F.N
               idx += 1
-              λ3[idx] = F.mbts[3][s, i, j, k, l] - F.mbts[3][s, i, l, k, j]
+              λ3[idx] = F.mbts[3][s, i, j, k, l] - F.mbts[3][s, i, l, k, j] + tbt_corr_2[s, i, j, k, l] - tbt_corr_2[s, i, l, k, j]
             end
           end
         end
@@ -1201,6 +1232,239 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
 
     @constraint(L1_OPT, low_3, λ3 + τ_31 * t[1] - vcat(T3 * omat[1:F.N^2], T3 * omat[F.N^2+1:end]) - tbt2 .<= 0)
     @constraint(L1_OPT, high_3, λ3 + τ_31 * t[1] - vcat(T3 * omat[1:F.N^2], T3 * omat[F.N^2+1:end]) + tbt2 .>= 0)
+
+    # New tbt constraint
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ4 = zeros(ν4_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for k in 1:F.N
+          for m in 1:i-1
+            for j in j+1:F.N
+              idx += 1
+              λ4[idx] = 1 / 8 * (sum(F.mbts[4][s, i, l, k, j, m, l] + F.mbts[4][s, i, l, k, l, m, j] + F.mbts[4][s, i, j, k, l, m, l] for l in 1:F.N) + F.mbts[4][s, i, j, k, j, m, j])
+            end
+          end
+        end
+      end
+    end
+
+    τ_41 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == j && k == l
+                τ_41[idx] += 1
+              end
+            end
+          end
+        end
+      end
+    end
+
+    τ_42 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == j && k == l
+                τ_42[idx] += 3
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+
+    T4 = zeros(Int64(ν3_len / 2), F.N^2)
+    idx = 0
+
+    for i in 1:F.N
+      for j in 1:F.N
+        for k in 1:i-1
+          for l in j+1:F.N
+            idx += 1
+
+            idx_ij = T_dict[i, j]
+            if k == l
+              T4[idx, idx_ij] += 2
+            end
+
+
+            idx_il = T_dict[i, l]
+            if k == j
+              T4[idx, idx_il] -= 2
+            end
+
+
+          end
+        end
+      end
+    end
+
+    @constraint(L1_OPT, low_4, λ4 + τ_41 * t[1] + τ_42 * t[3] - vcat(T4 * omat[1:F.N^2], T4 * omat[F.N^2+1:end]) - tbt3 .<= 0)
+    @constraint(L1_OPT, high_4, λ4 + τ_41 * t[1] + τ_42 * t[3] - vcat(T4 * omat[1:F.N^2], T4 * omat[F.N^2+1:end]) + tbt3 .>= 0)
+
+    # New tbt constraint 2
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ5 = zeros(ν4_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for l in 1:i-1
+            for n in j+1:F.N
+              idx += 1
+              λ5[idx] = 1 / 8 * (sum(-F.mbts[4][s, k, j, i, l, k, n] + F.mbts[4][s, k, j, k, l, i, n] + F.mbts[4][s, i, j, k, l, k, n] for k in 1:F.N) + F.mbts[4][s, i, j, i, l, i, n])
+            end
+          end
+        end
+      end
+    end
+
+    τ_51 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == l && k == j
+                τ_51[idx] += 1
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+
+    T5 = zeros(Int64(ν3_len / 2), F.N^2)
+    idx = 0
+
+    for i in 1:F.N
+      for j in 1:F.N
+        for k in 1:i-1
+          for l in j+1:F.N
+            idx += 1
+
+            idx_ij = T_dict[i, j]
+            if k == l
+              T5[idx, idx_ij] += 2
+            end
+
+
+            idx_il = T_dict[i, l]
+            if k == j
+              T5[idx, idx_il] -= 2
+            end
+
+
+          end
+        end
+      end
+    end
+
+    @constraint(L1_OPT, low_5, λ5 + τ_51 * t[1] - vcat(T5 * omat[1:F.N^2], T5 * omat[F.N^2+1:end]) - tbt4 .<= 0)
+    @constraint(L1_OPT, high_5, λ5 + τ_51 * t[1] - vcat(T5 * omat[1:F.N^2], T5 * omat[F.N^2+1:end]) + tbt4 .>= 0)
+
+    # Three body constraint
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ6 = zeros(v5_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:F.N
+            for l in 1:F.N
+              for m in 1:F.N
+                for n in 1:F.N
+                  if i != k && i != m && k != m && j != l && l != n && j != n
+                    idx += 1
+                    λ6[idx] = 1 / 8 * F.mbts[4][i, j, k, l, m, n]
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    τ_61 = zeros(v5_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:F.N
+            for l in 1:F.N
+              for m in 1:F.N
+                for n in 1:F.N
+                  idx += 1
+                  if i == j && k == l && m == n
+                    τ_61[idx] += 1
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+    @constraint(L1_OPT, low_6, λ6 + τ_61 * t[3] - threebt .<= 0)
+    @constraint(L1_OPT, high_6, λ6 + τ_61 * t[3] + threebt .>= 0)
+
+
 
     JuMP.optimize!(L1_OPT)
 

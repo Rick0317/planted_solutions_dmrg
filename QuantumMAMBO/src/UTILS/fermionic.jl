@@ -476,6 +476,83 @@ function ob_correction(F::F_OP; return_op=false)
   end
 end
 
+function ob_correction_3bd(F::F_OP; return_op=false)
+  #returns correction to one-body tensor coming from three body term inside fermionic operator F
+  if F.spin_orb
+    return F
+  else
+    if size(F.mbts[2], 1) == size(F.mbts[3], 1) && size(F.mbts[3], 1) == size(F.mbts[4], 1)
+      obt = 1 / 8 * sum(F.mbts[4][k, l, :, :, k, l] for k in 1:F.N, l in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][k, l, :, l, k, :] for k in 1:F.N, l in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][k, :, :, l, k, l] for k in 1:F.N, l in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][k, l, k, :, :, l] for k in 1:F.N, l in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][k, l, k, l, :, :] for k in 1:F.N, l in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][k, :, k, l, :, l] for k in 1:F.N, l in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][:, l, k, :, k, l] for k in 1:F.N, l in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][:, l, k, l, k, :] for k in 1:F.N, l in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][:, :, k, l, k, l] for k in 1:F.N, l in 1:F.N)
+
+      obt += 1 / 8 * sum(F.mbts[4][k, :, k, :, :, :] for k in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][k, :, :, :, k, :] for k in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][:, :, k, :, k, :] for k in 1:F.N)
+      obt += -1 / 8 * sum(F.mbts[4][:, k, :, :, :, k] for k in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][:, k, :, k, :, :] for k in 1:F.N)
+      obt += 1 / 8 * sum(F.mbts[4][:, :, :, k, :, k] for k in 1:F.N)
+
+      obt += -1 / 8 * F.mbts[4][:, :, :, :, :, :]
+
+      obt += 3 / 2 * sum(F.mbts[4][:, :, k, k, l, l] for k in 1:F.N, l in 1:F.N)
+
+    else
+      return F
+    end
+  end
+
+  if return_op
+    return F_OP(([0], obt), F.spin_orb)
+  else
+    return obt
+  end
+end
+
+function tb_correction_1(F::F_OP; return_op=false)
+  #returns correction to one-body tensor coming from tbt inside fermionic operator F
+  if F.spin_orb
+    return F
+  else
+    if size(F.mbts[3], 1) == size(F.mbts[4], 1)
+      tbt = 3 * sum(F.mbts[4][:, :, :, :, m, m] for m in 1:F.N)
+    else
+      return F
+    end
+  end
+
+  if return_op
+    return F_OP(([0], [0], tbt), F.spin_orb)
+  else
+    return obt
+  end
+end
+
+function tb_correction_2(F::F_OP; return_op=false)
+  #returns correction to one-body tensor coming from tbt inside fermionic operator F
+  if F.spin_orb
+    return F
+  else
+    if size(F.mbts[3], 1) == size(F.mbts[4], 1)
+      tbt = 3 * sum(F.mbts[4][:, :, :, :, m, m] for m in 1:F.N)
+    else
+      return F
+    end
+  end
+
+  if return_op
+    return F_OP(([0], [0], tbt), F.spin_orb)
+  else
+    return obt
+  end
+end
+
 function ob_correction(tbt::Array{Float64,4}, spin_orb=false)
   N = size(tbt)[1]
   if spin_orb
