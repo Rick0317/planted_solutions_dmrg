@@ -65,7 +65,7 @@ println("Fermionic operator generated.")
 # Run LPBLISS
 ######
 @time begin
-  H_bliss, K_operator = QuantumMAMBO.bliss_linprog(H_orig,
+  H_bliss, K_operator = QuantumMAMBO.bliss_linprog_extension(H_orig,
     num_electrons,
     model="highs", # LP solver used by Optim; "highs" or "ipopt". Both give the same answer, while "highs" is faster.
     verbose=true,
@@ -152,6 +152,7 @@ println("Calculating halfbandwidths for the LPBLISS-modified Hamiltonian")
 QuantumMAMBO.eliminate_small_values!(one_body_tensor_bliss, 1e-8)
 QuantumMAMBO.eliminate_small_values!(two_body_tensor_bliss, 1e-8)
 println("Small values eliminated.")
+println("Core energy Bliss:", core_energy_bliss)
 @time begin
   # pyscf_full_ci assumes the Hamiltonian is in the form:
   # H = E_0 + h_ij a†_i a_j + 0.5*g_ijkl a†_i a†_k a_l a_j

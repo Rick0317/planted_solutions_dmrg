@@ -13,7 +13,7 @@ juliacall = pyimport("juliacall")
 using ITensors, ITensorMPS
 
 # Define the directory path
-directory_path = "fcidumps_original"
+directory_path = "fcidumps_optimized"
 
 
 # Get a list of files in the directory
@@ -55,9 +55,11 @@ for file in files
       extra_attributes,
     ) = QM.load_tensors_from_fcidump(data_file_path=file_path)
 
+
     ampo = AutoMPO()
     N = num_orbitals
-    sites = siteinds("Electron", 2 * N, conserve_qns=true)
+    println("Number of orbitals: ", N)
+    sites = siteinds("Electron", 2 * N, conserve_qns=true, conserve_sz=true)
 
     for i in 1:N
       for j in 1:N
@@ -67,6 +69,7 @@ for file in files
         ampo += one_body_tensor[i, j],
         "Cdagdn", 2 * i,  # creation operator for orbital i with spin a
         "Cdn", 2 * j      # annihilation operator for orbital j with spin a
+
       end
     end
 
@@ -79,53 +82,55 @@ for file in files
             r = 2 * k - 1
             s = 2 * l - 1
             q = 2 * j - 1
-            if p != r && s != q
-              ampo += 0.5 * two_body_tensor[i, j, k, l],
-              "Cdagup", p,  # creation operator for orbital i with spin a
-              "Cdagup", r,  # creation operator for orbital k with spin b
-              "Cup", s,      # annihilation operator for orbital l with spin b
-              "Cup", q       # annihilation operator for orbital j with spin a
-            end
+
+            ampo += 0.5 * two_body_tensor[i, j, k, l],
+            "Cdagup", p,  # creation operator for orbital i with spin a
+            "Cdagup", r,  # creation operator for orbital k with spin b
+            "Cup", s,      # annihilation operator for orbital l with spin b
+            "Cup", q       # annihilation operator for orbital j with spin a
+
+
 
             p = 2 * i - 1
             r = 2 * k
             s = 2 * l
             q = 2 * j - 1
-            if p != r && s != q
-              ampo += 0.5 * two_body_tensor[i, j, k, l],
-              "Cdagup", p,  # creation operator for orbital i with spin a
-              "Cdagdn", r,  # creation operator for orbital k with spin b
-              "Cdn", s,      # annihilation operator for orbital l with spin b
-              "Cup", q       # annihilation operator for orbital j with spin a
-            end
+            ampo += 0.5 * two_body_tensor[i, j, k, l],
+            "Cdagup", p,  # creation operator for orbital i with spin a
+            "Cdagdn", r,  # creation operator for orbital k with spin b
+            "Cdn", s,      # annihilation operator for orbital l with spin b
+            "Cup", q       # annihilation operator for orbital j with spin a
+
 
             p = 2 * i
             r = 2 * k - 1
             s = 2 * l - 1
             q = 2 * j
-            if p != r && s != q
-              ampo += 0.5 * two_body_tensor[i, j, k, l],
-              "Cdagdn", p,  # creation operator for orbital i with spin a
-              "Cdagup", r,  # creation operator for orbital k with spin b
-              "Cup", s,      # annihilation operator for orbital l with spin b
-              "Cdn", q       # annihilation operator for orbital j with spin a
-            end
+            ampo += 0.5 * two_body_tensor[i, j, k, l],
+            "Cdagdn", p,  # creation operator for orbital i with spin a
+            "Cdagup", r,  # creation operator for orbital k with spin b
+            "Cup", s,      # annihilation operator for orbital l with spin b
+            "Cdn", q       # annihilation operator for orbital j with spin a
+
 
             p = 2 * i
             r = 2 * k
             s = 2 * l
             q = 2 * j
-            if p != r && s != q
-              ampo += 0.5 * two_body_tensor[i, j, k, l],
-              "Cdagdn", p,  # creation operator for orbital i with spin a
-              "Cdagdn", r,  # creation operator for orbital k with spin b
-              "Cdn", s,      # annihilation operator for orbital l with spin b
-              "Cdn", q       # annihilation operator for orbital j with spin a
-            end
+
+            ampo += 0.5 * two_body_tensor[i, j, k, l],
+            "Cdagdn", p,  # creation operator for orbital i with spin a
+            "Cdagdn", r,  # creation operator for orbital k with spin b
+            "Cdn", s,      # annihilation operator for orbital l with spin b
+            "Cdn", q       # annihilation operator for orbital j with spin a
+
+
           end
         end
       end
     end
+
+
 
     # for i in 1:N
     #   for j in 1:N
@@ -150,23 +155,23 @@ for file in files
     #   end
     # end
 
-    t = 0.1
+    # t = 10
 
-    for i in 1:N
-      for j in 1:N
-        for k in 1:N
-          # Three-body number operators using creation and annihilation operators
-          ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
-          ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagdn", 2 * k, "Cdn", 2 * k
-          ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
-          ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagdn", 2 * k, "Cdn", 2 * k
-          ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
-          ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagdn", 2 * k, "Cdn", 2 * k
-          ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
-          ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagdn", 2 * k, "Cdn", 2 * k
-        end
-      end
-    end
+    # for i in 1:N
+    #   for j in 1:N
+    #     for k in 1:N
+    #       # Three-body number operators using creation and annihilation operators
+    #       ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
+    #       ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagdn", 2 * k, "Cdn", 2 * k
+    #       ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
+    #       ampo += -t, "Cdagup", 2 * i - 1, "Cup", 2 * i - 1, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagdn", 2 * k, "Cdn", 2 * k
+    #       ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
+    #       ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagup", 2 * j - 1, "Cup", 2 * j - 1, "Cdagdn", 2 * k, "Cdn", 2 * k
+    #       ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagup", 2 * k - 1, "Cup", 2 * k - 1
+    #       ampo += -t, "Cdagdn", 2 * i, "Cdn", 2 * i, "Cdagdn", 2 * j, "Cdn", 2 * j, "Cdagdn", 2 * k, "Cdn", 2 * k
+    #     end
+    #   end
+    # end
 
     # print(ampo)
 
@@ -177,17 +182,18 @@ for file in files
 
     nsweeps = 10 # number of sweeps is 5
     maxdim = [10, 20, 30, 40, 50, 100, 150, 200, 300, 400] # gradually increase states kept
-    noise = [1E-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    cutoff = [1E-20] # desired truncation error
+    # maxdim = [100 for n in 1:10]
+    noise = [1E-4, 1E-4, 1E-5, 1E-5, 1E-6, 1E-6, 1E-7, 1E-7, 1E-8, 0.0]
+    # noise = [0, 0, 0, 0, 0]
+    cutoff = [1E-15] # desired truncation error
 
-    states = ["0" for n = 1:2*N]
+    states = ["Emp" for n = 1:2*N]
     states = prepare_electronic_states(states, num_electrons)
-    psi0 = productMPS(sites, states)
+    # psi0 = productMPS(sites, states)
+    psi0 = randomMPS(sites, states)
     print(num_electrons)
 
-    # psi0 = randomMPS(sites; linkdims=2)
-
     energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff, noise)
-    print(energy + t * num_electrons^3)
+    # print(energy + t * num_electrons^3)
   end
 end

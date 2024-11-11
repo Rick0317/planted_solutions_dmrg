@@ -10,11 +10,13 @@ pyscf = pyimport("pyscf")
 scipy = pyimport("scipy")
 np = pyimport("numpy")
 juliacall = pyimport("juliacall")
+Pkg.add("HDF5")
+using HDF5
 
 data_file_path = "fcidumps_catalysts/fcidump.2_co2_6-311++G__"
-fcidump_output_file_path = "fcidumps_bliss/fcidump.H2O_BLISS"
-lpbliss_hdf5_output_loading_file_path = "fcidumps_bliss/H2O_BLISS.h5"
-
+fcidump_output_file_path = "fcidumps_bliss/fcidump.H4_BLISS"
+lpbliss_hdf5_output_loading_file_path = "fcidumps_bliss/H4_BLISS.h5"
+lpbliss_hdf5_output_original = "fcidumps_bliss/H4_original_2body.h5"
 # Define the directory path
 directory_path = "fcidumps_original"
 
@@ -76,6 +78,25 @@ for file in files
     # H = QM.F_OP(two_body_tensor, false) + QM.F_OP(one_body_tensor, false)
 
     H_orig = QM.eri_to_F_OP(one_body_tensor, two_body_tensor, core_energy, spin_orb=false)
+
+    fid = h5open(lpbliss_hdf5_output_original, "cw")
+    create_group(fid, "BLISS")
+    BLISS_group = fid["BLISS"]
+    println("Saving results of BLISS optimization to $lpbliss_hdf5_output_original")
+    BLISS_group["ovec"] = zeros(H_orig.N, H_orig.N)
+    BLISS_group["t1"] = 0
+    BLISS_group["t2"] = 0
+    BLISS_group["t3"] = 0
+    BLISS_group["N"] = H_orig.N
+    BLISS_group["Ne"] = H_orig.N
+    create_group(fid, "BLISS_HAM")
+    MOL_DATA = fid["BLISS_HAM"]
+    MOL_DATA["h_const"] = H_orig.mbts[1]
+    MOL_DATA["obt"] = H_orig.mbts[2]
+    MOL_DATA["tbt"] = H_orig.mbts[3]
+    MOL_DATA["threebt"] = H_orig.mbts[3]
+    MOL_DATA["eta"] = num_electrons
+    close(fid)
 
     @time begin
       H_bliss, K_operator = QM.bliss_linprog(H_orig,
@@ -155,6 +176,8 @@ for file in files
     QM.eliminate_small_values!(one_body_tensor_bliss, 1e-8)
     QM.eliminate_small_values!(two_body_tensor_bliss, 1e-8)
     println("Small values eliminated.")
+
+    println("Core energy Bliss", core_energy_bliss)
 
     (E_min_bliss, E_max_bliss, E_min_bliss_subspace, E_max_bliss_subspace) = QM.pyscf_full_ci(one_body_tensor_bliss,
       two_body_tensor_bliss,

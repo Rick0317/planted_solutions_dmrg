@@ -620,35 +620,35 @@ end
 
 
 """
-	bliss_linprog(F :: F_OP, η; model='highs', verbose=true,SAVELOAD = SAVING, SAVENAME=DATAFOLDER*'BLISS.h5')
-	Shifts the Hamiltonian by a Symmetry operator, leaving unchanged a subspace with a chosen number of electrons η, such that the L1 norm of the resultant Hamiltonian is minimised.
-	Optimizes L1-norm through linear programming.
-	Solvers: HiGHS and Ipopt (HiGHS is usually faster, both are expected to return identical results)
-	Input:
-		The tensors of the input Hamiltonian are assumed to be of the form ``H = E0 + \\sum_{ij} h_{ij} a_i^† a_j + \\sum_{ijkl} g_ijkl a_i^† a_j a_k^† a_l``
-    
-		F::F_OP : (F_OP is defined under src/UTILS/struct.jl)
-		
-			Case 1: F respects spin symmetry, i.e., αα and ββ type components of one-body tensor are identical, and, αααα, ααββ, ββαα and ββββ type components of two body tensor are identical.
-				If N be the number of spatial orbitals, F.mbts[2] (i.e. the one body tensor) is an N * N object, and F.mbts[3] (i.e. the two body tensor) is an 				N*N*N*N object, with indices running over spatial orbitals.
-				
-			Case 2: F may violate spin symmetry, i.e., αα and ββ type components of one-body tensor are not necessarily identical, and αααα, ααββ, ββαα and ββββ type components of two body tensor are not necessarily identical. 
-				If N be the number of spatial orbitals, F.mbts[2] (i.e. the one body tensor) is a 2*N*N object, and F.mbts[3] (i.e. the two body tensor) is a 4*N*N*N*N object. In both one and two body tensors, all indices except the first index run over spatial orbitals. The first index of F.mbts[2] runs over the component types αα and ββ, whereas that of F.mbts[3] runs over the component types αααα, ααββ, ββαα and ββββ. 
-				
-			*NOTE*
-				bliss_linprog() does not work with F_OP where indices run over spin orbitals. Such an input F_OP would result in an incorrect output.
-				One can convert from the F_OP format where indices run over spin-orbitals to the format described under Case 2 using the F_OP_compress(F::F_OP) function. To convert back to the F_OP format where indices run over spin-orbitals, use the F_OP_converter(F::F_OP) function. Both F_OP_compress() and F_OP_converter() functions are defined under src/UTILS/fermionic.jl.
-				
-		η::Int64 : Number of electrons. The subspace corresponding to η electrons is left invariant under BLISS. 
-		model: can be set as 'highs' or 'ipopt'. Set to 'highs' by default.
-		verbose: whether intermediate step calculations are displayed or not
-		SAVELOAD: whether output is saved under SAVED/ folder and whether previously computed results are loaded from savefiles or not. Set to the configuration variable SAVING by dafault.
-		SAVENAME: filename for the savefile of the BLISS results. 
-	Output: 
-		Returns the BLISS-treated Hamiltonian F_bliss and the Symmetry shift operator S, where F_bliss = F - S, F being the input F_OP. 
-		The format of the one and two body tensors in the output F_OP objects (i.e. F_bliss and S) are exactly identical to that of their input. 	
-
+bliss_linprog(F :: F_OP, η; model='highs', verbose=true,SAVELOAD = SAVING, SAVENAME=DATAFOLDER*'BLISS.h5')
+Shifts the Hamiltonian by a Symmetry operator, leaving unchanged a subspace with a chosen number of electrons η, such that the L1 norm of the resultant Hamiltonian is minimised.
+Optimizes L1-norm through linear programming.
+Solvers: HiGHS and Ipopt (HiGHS is usually faster, both are expected to return identical results)
+Input:
+  The tensors of the input Hamiltonian are assumed to be of the form ``H = E0 + \\sum_{ij} h_{ij} a_i^† a_j + \\sum_{ijkl} g_ijkl a_i^† a_j a_k^† a_l``
+  
+  F::F_OP : (F_OP is defined under src/UTILS/struct.jl)
+  
+    Case 1: F respects spin symmetry, i.e., αα and ββ type components of one-body tensor are identical, and, αααα, ααββ, ββαα and ββββ type components of two body tensor are identical.
+      If N be the number of spatial orbitals, F.mbts[2] (i.e. the one body tensor) is an N * N object, and F.mbts[3] (i.e. the two body tensor) is an 				N*N*N*N object, with indices running over spatial orbitals.
+      
+    Case 2: F may violate spin symmetry, i.e., αα and ββ type components of one-body tensor are not necessarily identical, and αααα, ααββ, ββαα and ββββ type components of two body tensor are not necessarily identical. 
+      If N be the number of spatial orbitals, F.mbts[2] (i.e. the one body tensor) is a 2*N*N object, and F.mbts[3] (i.e. the two body tensor) is a 4*N*N*N*N object. In both one and two body tensors, all indices except the first index run over spatial orbitals. The first index of F.mbts[2] runs over the component types αα and ββ, whereas that of F.mbts[3] runs over the component types αααα, ααββ, ββαα and ββββ. 
+      
+    *NOTE*
+      bliss_linprog() does not work with F_OP where indices run over spin orbitals. Such an input F_OP would result in an incorrect output.
+      One can convert from the F_OP format where indices run over spin-orbitals to the format described under Case 2 using the F_OP_compress(F::F_OP) function. To convert back to the F_OP format where indices run over spin-orbitals, use the F_OP_converter(F::F_OP) function. Both F_OP_compress() and F_OP_converter() functions are defined under src/UTILS/fermionic.jl.
+      
+  η::Int64 : Number of electrons. The subspace corresponding to η electrons is left invariant under BLISS. 
+  model: can be set as 'highs' or 'ipopt'. Set to 'highs' by default.
+  verbose: whether intermediate step calculations are displayed or not
+  SAVELOAD: whether output is saved under SAVED/ folder and whether previously computed results are loaded from savefiles or not. Set to the configuration variable SAVING by dafault.
+  SAVENAME: filename for the savefile of the BLISS results. 
+Output: 
+  Returns the BLISS-treated Hamiltonian F_bliss and the Symmetry shift operator S, where F_bliss = F - S, F being the input F_OP. 
+  The format of the one and two body tensors in the output F_OP objects (i.e. F_bliss and S) are exactly identical to that of their input. 	
 """
+
 function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING, SAVENAME=DATAFOLDER * "BLISS.h5", num_threads::Int=1)
   if F.spin_orb
     error("BLISS not defined for spin-orb=true!")
@@ -739,7 +739,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
       for j in 1:F.N
         idx += 1
         if i == j
-          τ_11[idx] = 2 * F.N
+          τ_11[idx] = F.N
         end
       end
     end
@@ -754,7 +754,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
       end
     end
     T1 = zeros(ν1_len, ν1_len)
-    T1 += Diagonal((2η - 2F.N) * ones(ν1_len))
+    T1 += Diagonal((η - F.N) * ones(ν1_len))
     idx1 = 0
     for i in 1:F.N
       for j in 1:F.N
@@ -764,7 +764,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
           for l in 1:F.N
             idx2 += 1
             if i == j && k == l
-              T1[idx1, idx2] -= 2
+              T1[idx1, idx2] -= 1
             end
           end
         end
@@ -816,10 +816,10 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
             idx += 1
             idx_kl += 1
             if i == j
-              T2[idx, idx_kl] += 1
+              T2[idx, idx_kl] += 0.5
             end
             if k == l
-              T2[idx, idx_ij] += 1
+              T2[idx, idx_ij] += 0.5
             end
           end
         end
@@ -881,22 +881,22 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
 
             idx_ij = T_dict[i, j]
             if k == l
-              T3[idx, idx_ij] += 1
+              T3[idx, idx_ij] += 0.5
             end
 
             idx_kl = T_dict[k, l]
             if i == j
-              T3[idx, idx_kl] += 1
+              T3[idx, idx_kl] += 0.5
             end
 
             idx_il = T_dict[i, l]
             if k == j
-              T3[idx, idx_il] -= 1
+              T3[idx, idx_il] -= 0.5
             end
 
             idx_kj = T_dict[k, j]
             if i == l
-              T3[idx, idx_kj] -= 1
+              T3[idx, idx_kj] -= 0.5
             end
           end
         end
@@ -940,8 +940,11 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
 
     s1_obt = t_opt[2] * Ne.mbts[2] - 2η * O
     s1 = F_OP(([-t_opt[2] * η - t_opt[1] * η^2], s1_obt))
+    # s1 = F_OP(([-t_opt[2] * η], s1_obt))
 
     F_new = F - s1 - s2
+    # F_new = F - s1
+    println("h_const after BLISS:", F_new.mbts[1])
     if SAVELOAD
       fid = h5open(SAVENAME, "cw")
       create_group(fid, "BLISS")
@@ -950,11 +953,15 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
       BLISS_group["ovec"] = o_opt
       BLISS_group["t1"] = t_opt[1]
       BLISS_group["t2"] = t_opt[2]
+      BLISS_group["t3"] = 0
+      BLISS_group["N"] = F.N
+      BLISS_group["Ne"] = η
       create_group(fid, "BLISS_HAM")
       MOL_DATA = fid["BLISS_HAM"]
       MOL_DATA["h_const"] = F_new.mbts[1]
       MOL_DATA["obt"] = F_new.mbts[2]
       MOL_DATA["tbt"] = F_new.mbts[3]
+      MOL_DATA["threebt"] = 0
       MOL_DATA["eta"] = η
       close(fid)
     end
@@ -989,36 +996,46 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     ovec_len = Int(F.N * (F.N + 1) / 2)
 
 
-
+    # The dimension for each vector that we are optimizing
     v1_len = 2 * F.N^2
     ν2_len = 2 * F.N^4
     ν3_len = Int(2 * (F.N * (F.N - 1) / 2)^2)
+    v4_len = 2 * (F.N^2 * (F.N - 1) * (F.N - 2))
+    v5_len = 2 * (F.N * (F.N - 1) * (F.N - 2))^2
 
+    # Initializing the variables to be optimized
     @variables(L1_OPT, begin
-      t[1:2]
+      t[1:3]
 
       obt[1:v1_len]
       tbt1[1:ν2_len]
       tbt2[1:ν3_len]
+      tbt3[1:v4_len]
+      tbt4[1:v4_len]
+      threebt[1:v5_len]
       omat[1:2*F.N^2]
     end)
 
     @objective(L1_OPT, Min, 0.5 * (sum(obt) + sum(tbt1) + sum(tbt2)))
 
-
+    # One-body correction from the two-body term g
     obt_corr = ob_correction(F)
-    #1-body 1-norm
+    # One-body correction from the three-body term t
+    obt_three_corr = ob_correction_3bd(F)
+
+    # Original one-body tensors without tilde
     λ1 = zeros(2 * F.N^2)
     idx = 0
     for s in 1:2
       for i in 1:F.N
         for j in 1:F.N
           idx += 1
-          λ1[idx] = F.mbts[2][s, i, j] + obt_corr[s, i, j]
+          λ1[idx] = F.mbts[2][s, i, j] + obt_corr[s, i, j] + obt_three_corr[s, i, j]
         end
       end
     end
 
+    # Shift due to (Ne - ne) term
     τ_11 = zeros(v1_len)
     idx = 0
     for s in 1:2
@@ -1026,11 +1043,13 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
         for j in 1:F.N
           idx += 1
           if i == j
-            τ_11[idx] = 2 * F.N
+            τ_11[idx] = 1
           end
         end
       end
     end
+
+    # Shift due to (Ne^2 - ne^2) term
     τ_12 = zeros(2 * F.N^2)
     idx = 0
     for s in 1:2
@@ -1038,7 +1057,22 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
         for j in 1:F.N
           idx += 1
           if i == j
-            τ_12[idx] = 1
+            τ_12[idx] = 2 * F.N
+          end
+        end
+      end
+    end
+
+    # Shift due to (Ne^3 - ne^3) term
+
+    τ_13 = zeros(2 * F.N^2)
+    idx = 0
+    for s in 1:2
+      for i in 1:F.N
+        for j in 1:F.N
+          idx += 1
+          if i == j
+            τ_13[idx] = 1
           end
         end
       end
@@ -1066,8 +1100,10 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     end
 
 
-    @constraint(L1_OPT, low_1, λ1 - τ_11 * t[1] - τ_12 * t[2] + (2η - 4 * F.N) * omat - obt .<= 0)
-    @constraint(L1_OPT, high_1, λ1 - τ_11 * t[1] - τ_12 * t[2] + (2η - 4 * F.N) * omat + obt .>= 0)
+    @constraint(L1_OPT, low_1, λ1 - τ_11 * t[1] - τ_12 * t[2] - t_13 * t[3] + (2η - 4 * F.N) * omat - obt .<= 0)
+    @constraint(L1_OPT, high_1, λ1 - τ_11 * t[1] - τ_12 * t[2] - t_13 * t[3] + (2η - 4 * F.N) * omat + obt .>= 0)
+
+    tbt_corr_1 = tb_correction_1(F)
 
     λ2 = zeros(ν2_len)
     idx = 0
@@ -1077,7 +1113,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
           for k in 1:F.N
             for l in 1:F.N
               idx += 1
-              λ2[idx] = 0.5 * F.mbts[3][s, i, j, k, l]
+              λ2[idx] = 0.5 * F.mbts[3][s, i, j, k, l] + 0.5 * tbt_corr_1[s, i, j, k, l]
             end
           end
         end
@@ -1127,6 +1163,8 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
     @constraint(L1_OPT, low_2, λ2 - τ_21 * t[1] - vcat(T2 * omat[1:F.N^2], T2 * omat[F.N^2+1:end]) - tbt1 .<= 0)
     @constraint(L1_OPT, high_2, λ2 - τ_21 * t[1] - vcat(T2 * omat[1:F.N^2], T2 * omat[F.N^2+1:end]) + tbt1 .>= 0)
 
+    tbt_corr_2 = tb_correction_2(F)
+
     T_dict = zeros(Int64, F.N, F.N)
     idx = 0
     for i in 1:F.N
@@ -1146,7 +1184,7 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
           for k in 1:i-1
             for l in j+1:F.N
               idx += 1
-              λ3[idx] = F.mbts[3][s, i, j, k, l] - F.mbts[3][s, i, l, k, j]
+              λ3[idx] = F.mbts[3][s, i, j, k, l] - F.mbts[3][s, i, l, k, j] + tbt_corr_2[s, i, j, k, l] - tbt_corr_2[s, i, l, k, j]
             end
           end
         end
@@ -1201,6 +1239,239 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
 
     @constraint(L1_OPT, low_3, λ3 + τ_31 * t[1] - vcat(T3 * omat[1:F.N^2], T3 * omat[F.N^2+1:end]) - tbt2 .<= 0)
     @constraint(L1_OPT, high_3, λ3 + τ_31 * t[1] - vcat(T3 * omat[1:F.N^2], T3 * omat[F.N^2+1:end]) + tbt2 .>= 0)
+
+    # New tbt constraint
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ4 = zeros(ν4_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for k in 1:F.N
+          for m in 1:i-1
+            for j in j+1:F.N
+              idx += 1
+              λ4[idx] = 1 / 8 * (sum(F.mbts[4][s, i, l, k, j, m, l] + F.mbts[4][s, i, l, k, l, m, j] + F.mbts[4][s, i, j, k, l, m, l] for l in 1:F.N) + F.mbts[4][s, i, j, k, j, m, j])
+            end
+          end
+        end
+      end
+    end
+
+    τ_41 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == j && k == l
+                τ_41[idx] += 1
+              end
+            end
+          end
+        end
+      end
+    end
+
+    τ_42 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == j && k == l
+                τ_42[idx] += 3
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+
+    T4 = zeros(Int64(ν3_len / 2), F.N^2)
+    idx = 0
+
+    for i in 1:F.N
+      for j in 1:F.N
+        for k in 1:i-1
+          for l in j+1:F.N
+            idx += 1
+
+            idx_ij = T_dict[i, j]
+            if k == l
+              T4[idx, idx_ij] += 2
+            end
+
+
+            idx_il = T_dict[i, l]
+            if k == j
+              T4[idx, idx_il] -= 2
+            end
+
+
+          end
+        end
+      end
+    end
+
+    @constraint(L1_OPT, low_4, λ4 + τ_41 * t[1] + τ_42 * t[3] - vcat(T4 * omat[1:F.N^2], T4 * omat[F.N^2+1:end]) - tbt3 .<= 0)
+    @constraint(L1_OPT, high_4, λ4 + τ_41 * t[1] + τ_42 * t[3] - vcat(T4 * omat[1:F.N^2], T4 * omat[F.N^2+1:end]) + tbt3 .>= 0)
+
+    # New tbt constraint 2
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ5 = zeros(ν4_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for l in 1:i-1
+            for n in j+1:F.N
+              idx += 1
+              λ5[idx] = 1 / 8 * (sum(-F.mbts[4][s, k, j, i, l, k, n] + F.mbts[4][s, k, j, k, l, i, n] + F.mbts[4][s, i, j, k, l, k, n] for k in 1:F.N) + F.mbts[4][s, i, j, i, l, i, n])
+            end
+          end
+        end
+      end
+    end
+
+    τ_51 = zeros(v4_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:i-1
+            for l in j+1:F.N
+              idx += 1
+
+              if i == l && k == j
+                τ_51[idx] += 1
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+
+    T5 = zeros(Int64(ν3_len / 2), F.N^2)
+    idx = 0
+
+    for i in 1:F.N
+      for j in 1:F.N
+        for k in 1:i-1
+          for l in j+1:F.N
+            idx += 1
+
+            idx_ij = T_dict[i, j]
+            if k == l
+              T5[idx, idx_ij] += 2
+            end
+
+
+            idx_il = T_dict[i, l]
+            if k == j
+              T5[idx, idx_il] -= 2
+            end
+
+
+          end
+        end
+      end
+    end
+
+    @constraint(L1_OPT, low_5, λ5 + τ_51 * t[1] - vcat(T5 * omat[1:F.N^2], T5 * omat[F.N^2+1:end]) - tbt4 .<= 0)
+    @constraint(L1_OPT, high_5, λ5 + τ_51 * t[1] - vcat(T5 * omat[1:F.N^2], T5 * omat[F.N^2+1:end]) + tbt4 .>= 0)
+
+    # Three body constraint
+    tbt_corr_2 = tb_correction_2(F)
+
+    T_dict = zeros(Int64, F.N, F.N)
+    idx = 0
+    for i in 1:F.N
+      for j in 1:F.N
+        idx += 1
+        T_dict[i, j] = idx
+      end
+    end
+    λ6 = zeros(v5_len)
+    idx = 0
+    arr_align = [1, 4]
+    arr_anti = [2, 3]
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:F.N
+            for l in 1:F.N
+              for m in 1:F.N
+                for n in 1:F.N
+                  if i != k && i != m && k != m && j != l && l != n && j != n
+                    idx += 1
+                    λ6[idx] = 1 / 8 * F.mbts[4][i, j, k, l, m, n]
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    τ_61 = zeros(v5_len)
+    idx = 0
+    for s in arr_align
+      for i in 1:F.N
+        for j in 1:F.N
+          for k in 1:F.N
+            for l in 1:F.N
+              for m in 1:F.N
+                for n in 1:F.N
+                  idx += 1
+                  if i == j && k == l && m == n
+                    τ_61[idx] += 1
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+
+    @constraint(L1_OPT, low_6, λ6 + τ_61 * t[3] - threebt .<= 0)
+    @constraint(L1_OPT, high_6, λ6 + τ_61 * t[3] + threebt .>= 0)
+
+
 
     JuMP.optimize!(L1_OPT)
 
@@ -1324,5 +1595,4 @@ function bliss_linprog(F::F_OP, η; model="highs", verbose=true, SAVELOAD=SAVING
   end
 
 end
-
 
