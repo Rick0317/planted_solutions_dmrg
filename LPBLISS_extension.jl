@@ -13,7 +13,7 @@ juliacall = pyimport("juliacall")
 Pkg.add("HDF5")
 using HDF5
 
-data_file_path = "fcidumps_original/fcidump.H2O_original"
+data_file_path = "fcidumps_original/fcidump.H4_original"
 lpbliss_hdf5_output_loading_file_path = "fcidumps_bliss/H4_BLISS.h5"
 lpbliss_fcidump_output_file_path = "fcidumps_bliss/fcidump.H4_BLISS"
 # If lpbliss_hdf5_output_loading_file_path already exists, 

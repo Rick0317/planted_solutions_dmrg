@@ -1,8 +1,0 @@
-Molecule: lih
-Wavefucntion: fci
-Geometries: 1.0
-Method: svd
-
-SVD parts - H_fermionic: 0
-Sum over sqrt: 1.777979847318795
-
