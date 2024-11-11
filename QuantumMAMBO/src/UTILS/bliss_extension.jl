@@ -330,7 +330,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
         for j in 1:F.N
           if i != k && k != m && i != m
             idx += 1
-            λ4[idx] = 1 / 8 * (sum(F.mbts[4][i, l, k, j, m, l] for l in 1:F.N) + sum(F.mbts[4][i, l, k, l, m, j] for l in 1:F.N) + sum(F.mbts[4][i, j, k, l, m, l] for l in 1:F.N))
+            λ4[idx] += 1 / 8 * (sum(F.mbts[4][i, l, k, j, m, l] for l in 1:F.N) + sum(F.mbts[4][i, l, k, l, m, j] for l in 1:F.N) + sum(F.mbts[4][i, j, k, l, m, l] for l in 1:F.N))
             λ4[idx] += 1 / 8 * F.mbts[4][i, j, k, j, m, j]
           end
         end
@@ -377,7 +377,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
         for i in 1:F.N
           if j != l && l != n && j != n
             idx += 1
-            λ5[idx] = 1 / 8 * (-sum(F.mbts[4][k, j, i, l, k, n] for k in 1:F.N) + sum(F.mbts[4][k, j, k, l, i, n] for k in 1:F.N) + sum(F.mbts[4][i, j, k, l, k, n] for k in 1:F.N))
+            λ5[idx] += 1 / 8 * (-sum(F.mbts[4][k, j, i, l, k, n] for k in 1:F.N) + sum(F.mbts[4][k, j, k, l, i, n] for k in 1:F.N) + sum(F.mbts[4][i, j, k, l, k, n] for k in 1:F.N))
             λ5[idx] += 1 / 8 * F.mbts[4][i, j, i, l, i, n]
           end
         end
@@ -500,6 +500,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
   s1 = F_OP(([-t_opt[1] * η - t_opt[2] * η^2 - t_opt[3] * η^3], s1_obt))
 
   F_new = F - s1 - s2 - s3
+  println("h_const Bliss:", F_new.mbts[1])
   if SAVELOAD
     fid = h5open(SAVENAME, "cw")
     create_group(fid, "BLISS")
@@ -509,6 +510,8 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     BLISS_group["t1"] = t_opt[1]
     BLISS_group["t2"] = t_opt[2]
     BLISS_group["t3"] = t_opt[3]
+    BLISS_group["N"] = F.N
+    BLISS_group["Ne"] = η
     create_group(fid, "BLISS_HAM")
     MOL_DATA = fid["BLISS_HAM"]
     MOL_DATA["h_const"] = F_new.mbts[1]
