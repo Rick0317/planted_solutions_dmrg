@@ -123,7 +123,7 @@ function bliss_linprog_extension(F::F_OP, η; model="highs", verbose=true, SAVEL
     for j in 1:F.N
       idx += 1
       if i == j
-        τ_12[idx] = 1 / 8 * (3 * F.N + 3) + 3 / 2 * F.N^2
+        τ_13[idx] = 1 / 8 * (3 * F.N + 3) + 3 / 2 * F.N^2
       end
     end
   end

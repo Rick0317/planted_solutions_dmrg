@@ -1,4 +1,5 @@
-ENV["PYTHON"] = "/usr/local/bin/micromamba/envs/quantum/bin/python"
+#ENV["PYTHON"] = "/usr/local/bin/micromamba/envs/quantum/bin/python"
+ENV["PYTHON"] = "/cptg/u4/rhuang/.conda/envs/bliss_env"
 using Pkg
 Pkg.add("Arpack")
 Pkg.activate(".")
